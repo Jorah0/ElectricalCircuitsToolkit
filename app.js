@@ -873,7 +873,79 @@ function redrawPlots() {
   drawWave();
   drawPlot($('#mplot'), mathCfg, 'Use “plot f(x), from, to” to graph a function here.');
 }
-new ResizeObserver(() => { setViewBox(); redrawPlots(); }).observe(document.body);
+// Canvas and plots re-fit whenever their own box changes (window resize or a panel divider drag).
+const fitObserver = new ResizeObserver(() => { setViewBox(); redrawPlots(); });
+for (const el of [svg, $('#plot').parentElement, $('#mplot').parentElement]) fitObserver.observe(el);
+
+// ---------- adjustable panel boundaries: drag a divider, or focus it and use arrow keys; double-click resets ----------
+const PANE_MIN = 120;
+const root = document.documentElement.style;
+try { for (const [v, px] of Object.entries(JSON.parse(localStorage.getItem('layout') || '{}'))) root.setProperty(v, px + 'px'); } catch {}
+function saveLayout() {
+  const o = {};
+  for (const sp of document.querySelectorAll('.split')) { const v = root.getPropertyValue(sp.dataset.var); if (v) o[sp.dataset.var] = parseFloat(v); }
+  try { localStorage.setItem('layout', JSON.stringify(o)); } catch {}
+}
+for (const sp of document.querySelectorAll('.split')) {
+  const vertical = sp.classList.contains('y'), after = sp.dataset.side === 'after';
+  const size = (el) => (vertical ? el.getBoundingClientRect().height : el.getBoundingClientRect().width);
+  const pane = () => (after ? sp.nextElementSibling : sp.previousElementSibling); // the pane this divider's variable sizes
+  const other = () => (after ? sp.previousElementSibling : sp.nextElementSibling);
+  const resize = (px) => {
+    const room = size(pane()) + size(other());
+    root.setProperty(sp.dataset.var, Math.round(Math.max(PANE_MIN, Math.min(room - PANE_MIN, px))) + 'px');
+  };
+  sp.addEventListener('pointerdown', (ev) => {
+    if (ev.button !== 0) return;
+    ev.preventDefault();
+    try { sp.setPointerCapture(ev.pointerId); } catch {} // keeps tracking outside the window; window listeners below do the work
+    sp.classList.add('drag');
+    const start = vertical ? ev.clientY : ev.clientX, base = size(pane());
+    const move = (e) => { const d = (vertical ? e.clientY : e.clientX) - start; resize(after ? base - d : base + d); };
+    const end = () => { // any release or cancel ends the drag, so it can never get stuck
+      removeEventListener('pointermove', move);
+      removeEventListener('pointerup', end);
+      removeEventListener('pointercancel', end);
+      sp.classList.remove('drag');
+      saveLayout();
+    };
+    addEventListener('pointermove', move);
+    addEventListener('pointerup', end);
+    addEventListener('pointercancel', end);
+  });
+  sp.addEventListener('dblclick', () => { root.removeProperty(sp.dataset.var); saveLayout(); });
+  sp.addEventListener('keydown', (ev) => {
+    const step = { ArrowLeft: -16, ArrowUp: -16, ArrowRight: 16, ArrowDown: 16 }[ev.key];
+    if (!step) return;
+    ev.preventDefault(); ev.stopPropagation(); // don't also nudge parts / pan the canvas
+    resize(size(pane()) + (after ? -step : step));
+    saveLayout();
+  });
+}
+
+// ---------- UI scale: Ctrl + / − / 0. Browsers zoom natively; the desktop app has no browser zoom keys, so it asks its host. ----------
+const host = window.chrome && window.chrome.webview;
+let uiZoom = 1;
+try { uiZoom = +localStorage.getItem('uiZoom') || 1; } catch {}
+function setZoom(z) {
+  uiZoom = Math.min(2.5, Math.max(0.5, Math.round(z * 100) / 100));
+  try { localStorage.setItem('uiZoom', uiZoom); } catch {}
+  host.postMessage({ zoom: uiZoom });
+  status(`Interface scale ${Math.round(uiZoom * 100)}%`);
+}
+if (host) {
+  host.addEventListener('message', (ev) => { // Ctrl+wheel zoom happens in the host; keep our copy in sync
+    if (ev.data && typeof ev.data.zoom === 'number') { uiZoom = ev.data.zoom; try { localStorage.setItem('uiZoom', uiZoom); } catch {} }
+  });
+  if (uiZoom !== 1) host.postMessage({ zoom: uiZoom });
+  document.addEventListener('keydown', (ev) => {
+    if (!(ev.ctrlKey || ev.metaKey) || ev.altKey) return;
+    const k = ev.key === '+' ? '=' : ev.key === '_' ? '-' : ev.key;
+    if (!['=', '-', '0'].includes(k)) return;
+    ev.preventDefault();
+    setZoom(k === '0' ? 1 : uiZoom * (k === '-' ? 1 / 1.1 : 1.1));
+  }, true);
+}
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redrawPlots);
 
 const SAMPLE = { // RC low-pass driven by a 1 kHz sine

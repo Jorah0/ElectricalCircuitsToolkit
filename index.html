@@ -5,11 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Circuit Toolkit</title>
 <link rel="stylesheet" href="style.css">
-<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.core.js" integrity="sha384-xQSEWC9U3TkEcP2wa+TfVlioD35y0B9w5UDICbHR1VbBRt/Sta9vVtiI7OipX2YP" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Algebra.js" integrity="sha384-Fe6m/6uHCTl86ItmvzSPYPzE16B0zARqm1Bo5Z8oKGHcnQnvkBe0hYavSadUjSqV" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Calculus.js" integrity="sha384-zEv30J3CdpM8w5+WYPmcuv8lUhq3n8qzbDYU3sbZqHluSTmdsjJMBHJWHoqw6Cla" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Solve.js" integrity="sha384-Cd8aK9hE0bOs/4mmDSGOQ3XiHDSs4LMlFFpd8/SzTbVyr07tooiOnw2wkA4D2Off" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Extra.js" integrity="sha384-XjiMkeebd/lH6mZvURhGTkJAfRwYTVOFJsMQRkw+x5Mgp2oBFF54oJUEuUeCJTui" crossorigin="anonymous"></script>
+<link rel="icon" href="icon.png">
+<!-- nerdamer 1.1.13, vendored from jsdelivr (sha384 matched the published SRI hashes) so the app works offline -->
+<script src="vendor/nerdamer.core.js"></script>
+<script src="vendor/Algebra.js"></script>
+<script src="vendor/Calculus.js"></script>
+<script src="vendor/Solve.js"></script>
+<script src="vendor/Extra.js"></script>
 </head>
 <body>
 <header>
@@ -26,7 +28,7 @@
     <button data-tool="G">Ground <kbd>G</kbd></button>
   </nav>
   <span class="grow"></span>
-  <button id="keysbtn" title="Keyboard shortcuts">Keys <kbd>?</kbd></button>
+  <button id="keysbtn" title="Keyboard shortcuts (?)">Keys</button>
   <button id="undo" title="Undo (Ctrl+Z)">Undo</button>
   <button id="redo" title="Redo (Ctrl+Y)">Redo</button>
   <span class="sep"></span>
@@ -46,6 +48,7 @@
 
 <main>
   <svg id="canvas" tabindex="0" aria-label="Schematic canvas"></svg>
+  <div class="split x" data-var="--side-w" data-side="after" role="separator" aria-orientation="vertical" aria-label="Resize side panel" tabindex="0"></div>
   <aside>
     <section>
       <h2>Properties</h2>
@@ -74,7 +77,7 @@
     </section>
   </aside>
 </main>
-
+<div class="split y" data-var="--bottom-h" data-side="after" role="separator" aria-orientation="horizontal" aria-label="Resize bottom panel" tabindex="0"></div>
 <footer>
   <div class="tabs" role="tablist">
     <button role="tab" data-tab="wave" aria-selected="true">Waveforms</button>
@@ -84,6 +87,7 @@
   </div>
   <div id="tab-wave" class="tab">
     <div id="signals" class="signals"></div>
+    <div class="split x" data-var="--sig-w" data-side="before" role="separator" aria-orientation="vertical" aria-label="Resize signal list" tabindex="0"></div>
     <div class="plotbox"><canvas id="plot"></canvas><div class="tip" hidden></div></div>
   </div>
   <div id="tab-math" class="tab" hidden>
@@ -96,6 +100,7 @@
         <button class="primary">Eval</button>
       </form>
     </div>
+    <div class="split x" data-var="--math-w" data-side="before" role="separator" aria-orientation="vertical" aria-label="Resize math console" tabindex="0"></div>
     <div class="plotbox"><canvas id="mplot"></canvas><div class="tip" hidden></div></div>
   </div>
   <div id="tab-ai" class="tab" hidden>
@@ -113,6 +118,7 @@
         <button class="primary" id="asend">Send</button>
       </form>
     </div>
+    <div class="split x" data-var="--ai-w" data-side="after" role="separator" aria-orientation="vertical" aria-label="Resize AI settings" tabindex="0"></div>
     <div class="aiset">
       <h2>AI connection</h2>
       <label>Anthropic API key <input id="akey" type="password" autocomplete="off" placeholder="sk-ant-…"></label>
@@ -160,6 +166,8 @@
     <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd> / <kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Save / open (Shift = Save as) — or drop a file on the canvas</td></tr>
     <tr><td><kbd>H</kbd></td><td>Fit circuit to view</td></tr>
     <tr><td>Wheel · Alt/middle-drag</td><td>Zoom · pan (or drag empty canvas)</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>+</kbd> / <kbd>−</kbd> / <kbd>0</kbd></td><td>Scale the whole interface up / down / reset</td></tr>
+    <tr><td>Panel edges</td><td>Drag to resize (or focus + arrow keys); double-click to reset</td></tr>
   </table>
   <form method="dialog" class="row" style="justify-content:flex-end;margin-top:12px"><button class="primary">Close</button></form>
 </dialog>

@@ -17,7 +17,15 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
-body { display: grid; grid-template-rows: auto 1fr 300px; background: var(--page); color: var(--ink); }
+/* Panel sizes are CSS variables set by the draggable .split dividers (app.js); defaults are the fallbacks. */
+body { display: grid; grid-template-rows: auto minmax(160px, 1fr) 5px var(--bottom-h, 300px); background: var(--page); color: var(--ink); }
+.split { position: relative; touch-action: none; outline: none; z-index: 1; }
+.split::after { content: ''; position: absolute; background: var(--border); transition: background .1s; }
+.split.x { cursor: col-resize; } .split.x::after { top: 0; bottom: 0; left: 2px; width: 1px; }
+.split.y { cursor: row-resize; } .split.y::after { left: 0; right: 0; top: 2px; height: 1px; }
+.split:hover::after, .split.drag::after, .split:focus-visible::after { background: var(--accent); }
+.split.x:hover::after, .split.x.drag::after, .split.x:focus-visible::after { left: 1px; width: 3px; }
+.split.y:hover::after, .split.y.drag::after, .split.y:focus-visible::after { top: 1px; height: 3px; }
 button, .btn, input, select {
   font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--border);
   border-radius: 6px; padding: 4px 10px;
@@ -32,14 +40,16 @@ input { width: 100%; min-width: 0; }
 .hint { color: var(--ink2); margin: 0; }
 .err { color: var(--err); }
 
-header { display: flex; gap: 6px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+header { display: flex; gap: 4px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+header button, header select { padding: 3px 7px; }
+#exportsel { width: 96px; }
 .brand { margin-right: 8px; }
 #tools { display: flex; gap: 4px; flex-wrap: wrap; }
 .sep { width: 1px; background: var(--border); margin: 0 4px; }
 
-main { display: grid; grid-template-columns: 1fr 300px; min-height: 0; }
+main { display: grid; grid-template-columns: minmax(240px, 1fr) 5px var(--side-w, 300px); min-height: 0; }
 #canvas { width: 100%; height: 100%; background: var(--surface); display: block; outline: none; touch-action: none; user-select: none; }
-aside { border-left: 1px solid var(--border); overflow: auto; padding: 10px; display: flex; flex-direction: column; gap: 14px; }
+aside { overflow: auto; padding: 10px; display: flex; flex-direction: column; gap: 14px; }
 h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--ink2); margin: 0 0 8px; }
 label { display: block; color: var(--ink2); font-size: 12px; }
 label input, label select { margin-top: 2px; color: var(--ink); }
@@ -68,15 +78,15 @@ th { color: var(--ink2); }
 .cursor { fill: none; stroke: var(--accent); stroke-width: 1.5; pointer-events: none; }
 .netlbl { fill: var(--accent); font-size: 11px; font-variant-numeric: tabular-nums; pointer-events: none; }
 
-footer { border-top: 1px solid var(--border); display: grid; grid-template-rows: auto 1fr; min-height: 0; }
+footer { display: grid; grid-template-rows: auto 1fr; min-height: 0; }
 .tabs { display: flex; gap: 4px; padding: 6px 10px 0; align-items: center; }
 .tabs [role=tab] { border-radius: 6px 6px 0 0; border-bottom: none; }
 .tabs [aria-selected="true"] { background: var(--surface); box-shadow: inset 0 2px 0 var(--accent); }
 #status { text-align: right; color: var(--ink2); padding-right: 4px; }
-.tab { display: grid; grid-template-columns: 240px 1fr; min-height: 0; background: var(--surface); }
+.tab { display: grid; grid-template-columns: var(--sig-w, 240px) 5px minmax(0, 1fr); min-height: 0; background: var(--surface); }
 .tab[hidden] { display: none; }
-#tab-math { grid-template-columns: minmax(320px, 1fr) 1fr; }
-.signals { overflow: auto; padding: 8px 10px; border-right: 1px solid var(--border); }
+#tab-math { grid-template-columns: minmax(0, var(--math-w, 1fr)) 5px minmax(0, 1fr); }
+.signals { overflow: auto; padding: 8px 10px; }
 .signals label { display: flex; gap: 6px; align-items: center; color: var(--ink); font-size: 13px; padding: 1px 0; }
 .signals input { width: auto; }
 .swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
@@ -86,7 +96,7 @@ footer { border-top: 1px solid var(--border); display: grid; grid-template-rows:
   padding: 6px 8px; font-size: 12px; font-variant-numeric: tabular-nums; box-shadow: 0 2px 8px rgba(0,0,0,.15); white-space: nowrap; }
 .tip .k { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 6px; }
 
-.mathside { display: grid; grid-template-rows: 1fr auto auto; min-height: 0; padding: 8px 10px; gap: 6px; border-right: 1px solid var(--border); }
+.mathside { display: grid; grid-template-rows: 1fr auto auto; min-height: 0; min-width: 0; padding: 8px 10px; gap: 6px; }
 .mlog { overflow: auto; font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
 .mlog .in { color: var(--ink2); margin-top: 6px; }
 .mlog .out { white-space: pre-wrap; word-break: break-word; }
@@ -103,7 +113,7 @@ code { font: 12px ui-monospace, Consolas, monospace; }
 #netdlg { width: min(640px, calc(100vw - 32px)); }
 
 /* assistant */
-#tab-ai { grid-template-columns: 1fr 260px; }
+#tab-ai { grid-template-columns: minmax(0, 1fr) 5px var(--ai-w, 260px); }
 .alog { overflow: auto; display: flex; flex-direction: column; gap: 8px; }
 .msg { white-space: pre-wrap; word-break: break-word; padding: 6px 10px; border-radius: 8px; max-width: 90%; }
 .msg.user { align-self: flex-end; background: var(--accent); color: #fff; }
@@ -122,8 +132,10 @@ dialog th[colspan] { padding-top: 10px; color: var(--ink2); font-size: 12px; }
 dialog td:first-child { white-space: nowrap; padding-right: 12px; }
 
 @media (max-width: 800px) {
+  .split { display: none; } /* stacked layout on narrow screens: nothing side-by-side to resize */
   body { grid-template-rows: auto 60vh auto; }
   main { grid-template-columns: 1fr; }
-  aside { border-left: none; border-top: 1px solid var(--border); }
-  .tab, #tab-math { grid-template-columns: 1fr; grid-template-rows: auto 260px; }
+  aside { border-top: 1px solid var(--border); }
+  footer { border-top: 1px solid var(--border); }
+  .tab, #tab-math, #tab-ai { grid-template-columns: 1fr; grid-template-rows: auto 260px; }
 }

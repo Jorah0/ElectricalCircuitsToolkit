@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Desktop shell: a WinForms window hosting the web app in Microsoft Edge WebView2 (built into Windows 10/11).
+       Build: dotnet publish desktop -c Release -o dist   ->  dist\CircuitToolkit.exe -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>CircuitToolkit</AssemblyName>
+    <RootNamespace>CircuitToolkit</RootNamespace>
+    <Version>1.0.0</Version>
+    <Product>Circuit Toolkit</Product>
+    <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <PublishSingleFile>true</PublishSingleFile>
+    <!-- ponytail: framework-dependent keeps the exe small but needs the .NET 8 Desktop Runtime;
+         pass -p:SelfContained=true -p:EnableCompressionInSingleFile=true for a no-install exe (~60 MB). -->
+    <SelfContained>false</SelfContained>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>none</DebugType>
+    <ApplicationIcon>icon.ico</ApplicationIcon><!-- regenerate with make-icon.ps1 -->
+    <AllowedReferenceRelatedFileExtensions>none</AllowedReferenceRelatedFileExtensions><!-- no SDK .xml docs beside the exe -->
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- The web app itself, embedded so the exe is a single file. -->
+    <EmbeddedResource Include="..\index.html;..\style.css;..\app.js;..\solver.js;..\circuit.js;..\assistant.js" LogicalName="web/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\vendor\*.js" LogicalName="web/vendor/%(Filename)%(Extension)" />
+    <EmbeddedResource Include="..\icon.png" LogicalName="web/icon.png" />
+    <EmbeddedResource Include="icon.ico" LogicalName="app.ico" />
+  </ItemGroup>
+</Project>
