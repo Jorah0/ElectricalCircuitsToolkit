@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Circuit Toolkit</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/nerdamer.core.js" integrity="sha384-xQSEWC9U3TkEcP2wa+TfVlioD35y0B9w5UDICbHR1VbBRt/Sta9vVtiI7OipX2YP" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Algebra.js" integrity="sha384-Fe6m/6uHCTl86ItmvzSPYPzE16B0zARqm1Bo5Z8oKGHcnQnvkBe0hYavSadUjSqV" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Calculus.js" integrity="sha384-zEv30J3CdpM8w5+WYPmcuv8lUhq3n8qzbDYU3sbZqHluSTmdsjJMBHJWHoqw6Cla" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Solve.js" integrity="sha384-Cd8aK9hE0bOs/4mmDSGOQ3XiHDSs4LMlFFpd8/SzTbVyr07tooiOnw2wkA4D2Off" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/nerdamer@1.1.13/Extra.js" integrity="sha384-XjiMkeebd/lH6mZvURhGTkJAfRwYTVOFJsMQRkw+x5Mgp2oBFF54oJUEuUeCJTui" crossorigin="anonymous"></script>
+</head>
+<body>
+<header>
+  <strong class="brand">Circuit Toolkit</strong>
+  <nav id="tools" aria-label="Tools">
+    <button data-tool="select" title="Select / move (S or Esc)">Select <kbd>S</kbd></button>
+    <button data-tool="wire" title="Draw trace. Click to bend, double/right-click to finish, F flips the bend. Start or end on any trace to branch.">Trace <kbd>W</kbd></button>
+    <span class="sep"></span>
+    <button data-tool="R">Resistor <kbd>R</kbd></button>
+    <button data-tool="C">Capacitor <kbd>C</kbd></button>
+    <button data-tool="L">Inductor <kbd>L</kbd></button>
+    <button data-tool="V">V source <kbd>V</kbd></button>
+    <button data-tool="I">I source <kbd>I</kbd></button>
+    <button data-tool="G">Ground <kbd>G</kbd></button>
+  </nav>
+  <span class="grow"></span>
+  <button id="keysbtn" title="Keyboard shortcuts">Keys <kbd>?</kbd></button>
+  <button id="undo" title="Undo (Ctrl+Z)">Undo</button>
+  <button id="redo" title="Redo (Ctrl+Y)">Redo</button>
+  <span class="sep"></span>
+  <button id="netlist" title="View, edit or paste a SPICE-style netlist and build the diagram from it">Netlist</button>
+  <button id="open" title="Open a circuit (.json) or netlist (.cir/.net/.sp) — Ctrl+O, or drop a file on the canvas">Open</button>
+  <button id="save" title="Save circuit (Ctrl+S, Ctrl+Shift+S = Save as)">Save</button>
+  <input type="file" id="import" accept=".json,.cir,.net,.sp,.spice,.txt" hidden>
+  <select id="exportsel" aria-label="Export">
+    <option value="">Export…</option>
+    <option value="svg">Schematic (SVG)</option>
+    <option value="png">Schematic (PNG)</option>
+    <option value="cir">Netlist (.cir)</option>
+    <option value="csv">Waveforms (CSV)</option>
+  </select>
+  <button id="clear">Clear</button>
+</header>
+
+<main>
+  <svg id="canvas" tabindex="0" aria-label="Schematic canvas"></svg>
+  <aside>
+    <section>
+      <h2>Properties</h2>
+      <div id="props"><p class="hint">Pick a part from the toolbar and click the canvas to place it. Space rotates, Delete removes.</p></div>
+    </section>
+    <section>
+      <h2>Insights</h2>
+      <div id="insights" aria-live="polite"></div>
+    </section>
+    <section>
+      <h2>Analysis</h2>
+      <div class="grid2">
+        <label>Stop time <input id="tstop" value="10m"></label>
+        <label>Time step <input id="tstep" value="" placeholder="auto"></label>
+        <label>AC freq (Hz) <input id="acf" value="1k"></label>
+        <label>Sweep (Hz) <input id="sweep" value="10-100k"></label>
+      </div>
+      <label class="check"><input type="checkbox" id="fromdc"> Transient starts from DC operating point</label>
+      <div class="row">
+        <button id="run-dc" title="D">DC</button>
+        <button id="run-ac" title="A">AC</button>
+        <button id="run-tran" class="primary" title="T">Transient</button>
+        <button id="run-bode" title="B">Bode</button>
+      </div>
+      <div id="results"></div>
+    </section>
+  </aside>
+</main>
+
+<footer>
+  <div class="tabs" role="tablist">
+    <button role="tab" data-tab="wave" aria-selected="true">Waveforms</button>
+    <button role="tab" data-tab="math" aria-selected="false">Math</button>
+    <button role="tab" data-tab="ai" aria-selected="false">Assistant</button>
+    <span id="status" class="grow"></span>
+  </div>
+  <div id="tab-wave" class="tab">
+    <div id="signals" class="signals"></div>
+    <div class="plotbox"><canvas id="plot"></canvas><div class="tip" hidden></div></div>
+  </div>
+  <div id="tab-math" class="tab" hidden>
+    <div class="mathside">
+      <div id="mlog" class="mlog" aria-live="polite"></div>
+      <div class="examples" id="examples"></div>
+      <form id="mform" class="row">
+        <input id="min" autocomplete="off" spellcheck="false" placeholder="solve(x^2-5*x+6=0, x)   ·   diff(sin(t)*exp(-t), t)   ·   plot sin(2*pi*t), 0, 2">
+        <label class="check" title="Replace part names (R1, C1…) with their values"><input type="checkbox" id="usevals"> part values</label>
+        <button class="primary">Eval</button>
+      </form>
+    </div>
+    <div class="plotbox"><canvas id="mplot"></canvas><div class="tip" hidden></div></div>
+  </div>
+  <div id="tab-ai" class="tab" hidden>
+    <div class="mathside">
+      <div id="alog" class="alog" aria-live="polite"><p class="hint">Ask about the circuit on the canvas, or describe one to generate (“design a 1 kHz band-pass filter for a 5 V sine source”). The assistant sees the netlist, the insights and your latest results, and can build circuits and run analyses itself.</p></div>
+      <div class="examples" id="aquick">
+        <button type="button" data-q="Review this circuit. List problems most severe first, each with a concrete fix. Run analyses if that helps you check.">Review &amp; fix</button>
+        <button type="button" data-q="What is this circuit most likely used for? Give the top applications, the key figures that support them, and what to change to adapt it.">Likely applications</button>
+        <button type="button" data-q="Explain the latest analysis results in plain language: what each node and part is doing, and whether the values look sensible.">Explain results</button>
+        <button type="button" data-fill="Design a ">Generate a circuit…</button>
+        <button type="button" id="anew">New chat</button>
+      </div>
+      <form id="aform" class="row">
+        <input id="ain" autocomplete="off" placeholder="Ask, or describe a circuit to build…">
+        <button class="primary" id="asend">Send</button>
+      </form>
+    </div>
+    <div class="aiset">
+      <h2>AI connection</h2>
+      <label>Anthropic API key <input id="akey" type="password" autocomplete="off" placeholder="sk-ant-…"></label>
+      <label class="check"><input type="checkbox" id="aremember"> Remember on this device</label>
+      <label>Model <select id="amodel">
+        <option value="claude-opus-5-5">Claude Opus 5.5 (best)</option>
+        <option value="claude-sonnet-5-5">Claude Sonnet 5.5 (faster)</option>
+        <option value="claude-haiku-5-5">Claude Haiku 5.5 (cheapest)</option>
+      </select></label>
+      <p class="hint">The key goes only from this browser to api.anthropic.com. A remembered key is stored in this browser profile’s local storage, where anything else running on this page’s address could read it.</p>
+    </div>
+  </div>
+</footer>
+
+<dialog id="netdlg" aria-label="Netlist">
+  <h2>Netlist</h2>
+  <p class="hint">One part per line: <code>NAME node+ node− value</code>. Node <code>0</code> (or gnd) is ground; named nodes become trace labels.
+    Sources: <code>DC 5</code> · <code>SIN(offset amp freq 0 0 phase)</code> · <code>SQUARE/TRI/SAW(offset amp freq)</code> · <code>STEP(amp)</code> · <code>EXPR 5*sin(2*pi*t)</code>.</p>
+  <textarea id="nettext" rows="12" spellcheck="false"></textarea>
+  <p id="neterr" class="err"></p>
+  <form method="dialog" class="row" style="justify-content:flex-end">
+    <button type="button" id="netbuild" class="primary">Build diagram</button>
+    <button>Close</button>
+  </form>
+</dialog>
+
+<dialog id="keys" aria-label="Keyboard shortcuts">
+  <h2>Keyboard shortcuts</h2>
+  <table>
+    <tr><th colspan="2">Place &amp; draw</th></tr>
+    <tr><td><kbd>R</kbd> <kbd>C</kbd> <kbd>L</kbd></td><td>Resistor, capacitor, inductor</td></tr>
+    <tr><td><kbd>V</kbd> <kbd>I</kbd> <kbd>G</kbd></td><td>Voltage source, current source, ground</td></tr>
+    <tr><td><kbd>W</kbd></td><td>Trace — click to bend, double/right-click to finish</td></tr>
+    <tr><td><kbd>S</kbd> / <kbd>Esc</kbd></td><td>Select tool / cancel trace / deselect</td></tr>
+    <tr><th colspan="2">Edit the selected part (or the part about to be placed)</th></tr>
+    <tr><td><kbd>E</kbd> / <kbd>Space</kbd></td><td>Rotate clockwise 90° (traces stay attached)</td></tr>
+    <tr><td><kbd>Q</kbd></td><td>Rotate counter-clockwise 90°</td></tr>
+    <tr><td><kbd>F</kbd></td><td>Flip: swap terminals (source polarity) · while tracing: flip the bend</td></tr>
+    <tr><td><kbd>←</kbd><kbd>↑</kbd><kbd>→</kbd><kbd>↓</kbd></td><td>Nudge one grid step (pans the view when nothing is selected)</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>D</kbd></td><td>Duplicate</td></tr>
+    <tr><td><kbd>Del</kbd></td><td>Delete part or trace</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd> / <kbd>Ctrl</kbd>+<kbd>Y</kbd></td><td>Undo / redo</td></tr>
+    <tr><th colspan="2">Run &amp; view</th></tr>
+    <tr><td><kbd>D</kbd> <kbd>A</kbd> <kbd>T</kbd> <kbd>B</kbd></td><td>DC, AC, Transient, Bode analysis</td></tr>
+    <tr><td><kbd>Ctrl</kbd>+<kbd>S</kbd> / <kbd>Ctrl</kbd>+<kbd>O</kbd></td><td>Save / open (Shift = Save as) — or drop a file on the canvas</td></tr>
+    <tr><td><kbd>H</kbd></td><td>Fit circuit to view</td></tr>
+    <tr><td>Wheel · Alt/middle-drag</td><td>Zoom · pan (or drag empty canvas)</td></tr>
+  </table>
+  <form method="dialog" class="row" style="justify-content:flex-end;margin-top:12px"><button class="primary">Close</button></form>
+</dialog>
+
+<script src="solver.js"></script>
+<script src="circuit.js"></script>
+<script src="app.js"></script>
+<script src="assistant.js"></script>
+</body>
+</html>
